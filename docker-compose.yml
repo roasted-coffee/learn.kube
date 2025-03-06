@@ -1,0 +1,114 @@
+version: '3.9'
+services:
+  jumpbox:
+    build:
+      context: ./busybox/
+    container_name: jumpbox
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+    ports:
+      - "2222:22"
+    volumes:
+      - data_volume:/data
+    networks:
+      k_network:
+        aliases:
+          - localhost.jumpbox
+    hostname: jumpbox
+
+  k_server:
+    build:
+      context: ./server/
+    container_name: k_server
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
+    ports:
+      - "2223:22"
+    volumes:
+      - data_volume:/data
+    networks:
+      k_network:
+        aliases:
+          - localhost.k_server
+    hostname: server.kubernetes.local
+
+  k_worker_0:
+    build:
+      context: ./worker/
+    container_name: k_worker_0
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
+    ports:
+      - "2230:22"
+    volumes:
+      - k_volume_0:/data
+    networks:
+      k_network:
+        aliases:
+          - localhost.k_worker_0
+    hostname: node-0.kubernetes.local
+
+  k_worker_1:
+    build:
+      context: ./worker/
+    container_name: k_worker_1
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
+    ports:
+      - "2231:22"
+    volumes:
+      - k_volume_1:/data
+    networks:
+      k_network:
+        aliases:
+          - localhost.k_worker_1
+    hostname: node-1.kubernetes.local
+
+volumes:
+  data_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
+  k_volume_0:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: /dev/shm
+      o: size=20g
+
+  k_volume_1:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: /dev/shm
+      o: size=20g
+
+networks:
+  k_network:
+    driver: bridge
